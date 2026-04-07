@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trial Webchat</title>
+    <style>
+        body{ font-family:sans-serif; background-color: #121212; padding: 20px; color: #fff;}
+        #log {height:300px ; background-color:#000 ; padding:10px; overflow-y:scroll; border: 1px solid #333;}
+        .status-on{color: #00ff00}
+        .status-off{color : #ff0000}
+    </style>
+</head>
+<body>
+    <h1>Web Broadcast Console</h1>
+    <p class="status-off" id="status">Connecting....</p>
+
+    <form id="message-form">
+       <input type="text" id="message-input" placeholder="Enter Text..."/>
+       <button type="submit">Submit</button>
+    </form>
+    <h3>Livestream Logs</h3>
+    <pre id="log"></pre>
+</body>
+<script>
+    const status = document.getElementById('status');
+    const log = document.getElementById('log');
+    const input = document.getElementById('message-input');
+
+    //Insantiate a Websocket Handshake
+    const socket = new WebSocket('ws://localhost:8080');
+
+    const appendLog = (label , message) => {
+        const entry = `${new Date().toLocaleTimeString()} ${label} : ${message}\n`;
+        log.textContent = entry + log.textContent;
+    }
+    socket.addEventListener('open', () => {
+        status.textContent = 'CONNECTED : ws://localhost:8080';
+        status.className = 'status-on';
+        appendLog(['SYSTEM'] , 'Tunnel is Established');
+    })
+
+    socket.addEventListener('close', () => {
+        status.textContent = 'DISCONNECTED';
+        status.className = 'status-off';
+        appendLog(['SYSTEM'] , 'Tunnel Collapsed');
+    })
+    socket.addEventListener('message' , (event) => {
+        appendLog(['RECEIVED'] , event.data)
+    })
+    document.getElementById('message-form').addEventListener('submit' , (e)=> {
+        e.preventDefault();
+
+        if(!socket.readyState === WebSocket.OPEN){
+            appendLog(['ERROR'] , 'Connection is not open');
+        }
+        const message = input.value;
+        socket.send(message);
+        appendLog(['SENT'] , message);
+        input.value = '';
+    })
+</script>
+</html>
